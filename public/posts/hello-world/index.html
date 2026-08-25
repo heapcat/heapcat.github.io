@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto" data-theme="dark">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Load Save? Yes. Execute? Also Yes. | heapcat</title>
+<meta name="keywords" content="">
+<meta name="description" content="Chaining Buffer Overflows to Achieve ACE in a Forgotten Two-Decade-Old Game">
+<meta name="author" content="">
+<link rel="canonical" href="http://localhost:1313/posts/hello-world/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.04fb5581a9ceb211385e0d4f2c6b44e80a89ae3803bca351f877326534b9c9a2.css" integrity="sha256-BPtVganOshE4Xg1PLGtE6AqJrjgDvKNR&#43;HcyZTS5yaI=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/posts/hello-world/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "light") {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><meta property="og:url" content="http://localhost:1313/posts/hello-world/">
+  <meta property="og:site_name" content="heapcat">
+  <meta property="og:title" content="Load Save? Yes. Execute? Also Yes.">
+  <meta property="og:description" content="Chaining Buffer Overflows to Achieve ACE in a Forgotten Two-Decade-Old Game">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-08-25T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-08-25T00:00:00+00:00">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Load Save? Yes. Execute? Also Yes.">
+  <meta name="twitter:description" content="Chaining Buffer Overflows to Achieve ACE in a Forgotten Two-Decade-Old Game">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "http://localhost:1313/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Load Save? Yes. Execute? Also Yes.",
+      "item": "http://localhost:1313/posts/hello-world/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Load Save? Yes. Execute? Also Yes.",
+  "name": "Load Save? Yes. Execute? Also Yes.",
+  "description": "Chaining Buffer Overflows to Achieve ACE in a Forgotten Two-Decade-Old Game",
+  "keywords": [
+    
+  ],
+  "articleBody": "TL;RD The save file parser passes an attacker-controlled file size directly to qmemcpy, overflowing a global buffer in .data and corrupting adjacent resource file path strings. When the game fails to open the corrupted path, the error handler copies it into a fixed-size stack buffer via wsprintfA with no length check. That allows us to overwrite ret address and achive ACE due to the lack of ASLR and DEP.\nDiscovery When I first started this project, I wasn’t paying much attention to the save file parsing function. I just mapped out the algorithm, how it loads data into a buffer, and moved on. However, under closer inspection i realized, that there is vulnerability, that allows us to copy any amount of data from file to .data buffers.\nExploiting Global Buffer Overflow While analyzing the function and examining the original save file, it became clear that the legitimate save file size is 0xC820 bytes. However, during loading, the game blindly trusts the attacker-controlled file size, passing it directly to qmemcpy without any validation. This allows an attacker to craft a save file of arbitrary size (larger than 0xC820) and overwrite an arbitrary amount of data in the .data segment.\nBelow is a decompiled view of the save file parser function, with comments explaining where and why the vulnerability exists:\nint load_savefile() // .text:004648B0 { FILE *v0; // eax FILE *v1; // edi int result; // eax size_t filesize; // ebx void *v4; // esi v0 = fopen(aSaveDat, Mode); // Open save.dat with rb mode v1 = v0; if ( v0 ) { // File size is calculated using fseek/ftell. // This value is attacker-controlled, since we can craft a file // of any size we want. filesize = get_filesize_fseek(v0); v4 = malloc(filesize); // Allocate a heap chunk of filesize bytes fread(v4, 1u, filesize, v1); // Read filesize bytes from fd into the heap chunk fclose(v1); // First global buffer overflow. // The attacker-controlled filesize is passed to qmemcpy without any bounds check, // copying all data from the heap chunk into the global buffer at \u0026playersaves (.data:09C4E140). qmemcpy(\u0026playersaves, v4, filesize); sub_47B720(); result = init_saveslots_if_null(); // Initialize save slots if null. // Second global buffer overflow. // filesize is passed to qmemcpy again without any bounds check, // copying from \u0026playersaves (.data:09C4E140) into \u0026live_saveslots (.data:09C3C368), // which sits at a higher address in the .data segment. qmemcpy(\u0026live_saveslots, \u0026playersaves, filesize); } else { result = init_saveslots_if_null(); // THIS IS HOW IT SHOULD BE DONE // A hardcoded size of 0xC820 prevents the overflow entirely. qmemcpy(\u0026live_saveslots, \u0026playersaves, 0xC820u); } So i started debugging it. When loading a normal save file, the memory region immediately following the save data looks like this:\nThe last 4 bytes of the save data are located at 0x09C5A95C. However, when we add additional data to the save file and load it, the same memory region looks like this:\nAs you can see, the game continues copying the save file data into higher memory addresses beyond the end of the global buffer at 0x09C5A95C.\nWhat we can do with it? At first, I thought this vulnerability was unexploitable due to the lack of any pointers or other immediately useful data in the .data segment. However, after taking a closer look, I discovered that the .data segment also stores .x file paths at higher addresses, located after our vulnerable buffer.\nThen I tried to overwrite the file path. To make things easier, I calculated the offset between the end of the global buffer and the beginning of the first .x file path (all memory after global buffer contains a bunch of .x, .bmp and other file paths). I also copied the already-initialized memory from Cheat Engine’s memory view, just in case the game relied on some of the variables stored in this region.\nAlright, time to overwrite the file path and see what happens. Well… nothing particularly exciting. The game simply displays a warning box saying it couldn’t open the file AAAAAAAAAAAAAA... and then freezes on the loading screen.\nBut wait, that’s actually a useful clue. We can search for the “File Opne Error” string in the binary to find the function responsible for displaying this warning and, more importantly, attempting to load the .x file. And that’s where the second chapter of this story begins.\nExploiting Stack Buffer Overflow After locating the function responsible for loading the .x file, I traced the filename backwards from the MessageBoxA call to its source and found something much more interesting: a stack-based buffer overflow. This function is located at .text:0045E4B0 and takes two arguments, one of which is LPCSTR lpCaption, the path of the .x file the game is trying to open:\nvoid __cdecl load_xfile02(int a1, LPCSTR lpCaption) // Filename passed as argument to function { unsigned __int16 *v2; // esi // ... SNIPPET ... CHAR Text[256]; // This is the stack buffer, where function loads file path v2 = (unsigned __int16 *)malloc((size_t)\u0026unk_800000); if ( v2 ) { v3 = fopen(lpCaption, Mode); // Function tries to open file v4 = v3; if ( v3 ) { // ... SNIPPET ... we don't need all that logic, trust me else { wsprintfA(Text, \"Not File Found %s\", lpCaption); // \u003c-- This is the text we get in MessageBox when game can't load file MessageBoxA(hWndParent, Text, aError_0, 0); // This displays error MessageBox free(v2); } } } else { sprintf(Text, byte_50FD38); MessageBoxA(hWndParent, Text, lpCaption, 0); } } The interesting part is the error-handling path. If fopen(lpCaption, “rb”) fails, the game constructs an error message using:\nwsprintfA(Text, \"Not File Found %s\", lpCaption); The resulting string is stored in Text, which is a fixed-size 256-byte stack buffer.\nNormally, this wouldn’t be particularly interesting. But remember that we already control lpCaption through the first vulnerability. We can therefore replace the .x file path in the .data segment with an arbitrarily long string. When that string is passed to wsprintfA, there is no bounds check on Text. Once the resulting message exceeds 256 bytes, wsprintfA continues writing past the end of the stack buffer and starts corrupting adjacent stack data.\nSo we’ve effectively turned the first vulnerability into a primitive for triggering a second one:\nSave file ⌄ Global .data buffer overflow ⌄ Overwrite .x file path ⌄ Controlled lpCaption ⌄ wsprintfA(..., lpCaption) ⌄ 256-byte stack buffer overflow ⌄ Corrupted stack / return address After that, I generated a very long cyclic pattern (we dont need to be percise, because we dont know which file will be loaded by the game first, so let’s just try to overwrite as much file paths as we can) and saved it to the file. When launching the game, nothing unusual happened: the crash only occurred after loading the modified save file. The game displayed the expected error about being unable to open the file and then crashed.\nWell, if it crashes, there’s only one thing left to do: fire up the debugger and see what we managed to overwrite.\n(3204.42e0): Access violation - code c0000005 (first chance) First chance exceptions are reported before any exception handling. This exception may be expected and handled. eax=00000001 ebx=00000001 ecx=0dd60000 edx=0dd60000 esi=09c5af18 edi=00458880 eip=34664933 esp=19e7fc38 ebp=09c3c368 iopl=0 nv up ei pl nz na po nc cs=0023 ss=002b ds=002b es=002b fs=0053 gs=002b efl=00010202 34664933 ?? ??? That’s a hit! EIP = 0x34664933 = 4fI3 and it’s part of out cyclic pattern, we control eip register (ret address on stack).\nLets confirm it by overwriting eip to \\x42\\x42\\x42\\x42\n0:017\u003e g (40ec.4b3c): Access violation - code c0000005 (first chance) First chance exceptions are reported before any exception handling. This exception may be expected and handled. eax=00000001 ebx=00000000 ecx=0de50000 edx=0de50000 esi=09c5af18 edi=00458880 eip=42424242 esp=1a92fc38 ebp=09c3c368 iopl=0 nv up ei pl nz na po nc cs=0023 ss=002b ds=002b es=002b fs=0053 gs=002b efl=00010202 42424242 ?? ??? Alright, now our dummy payload looks like this:\n[] Original Save Data [] Padding to First xpath string [] 6401 bytes of '\\x41' padding [] \\x41\\x42\\x42\\x42 (ret) Now we need to find where out buffer is stored in memory? ESI register stores address of buffer-0x4.\nSo we need to overwrite ret address with esi + 0x4 and try to hit CC opcode at the beginning of the buffer to check if we land there.\n0:017\u003e g (3630.938): Break instruction exception - code 80000003 (first chance) *** WARNING: Unable to verify checksum for C:\\Program Files (x86)\\Steam\\steamapps\\common\\Chantelise\\chantelise.exe.unpacked.exe eax=00000001 ebx=00000000 ecx=0de00000 edx=0de00000 esi=09c5af18 edi=00458880 eip=09c5af1c esp=1ab0fc38 ebp=09c3c368 iopl=0 nv up ei pl nz na po nc cs=0023 ss=002b ds=002b es=002b fs=0053 gs=002b efl=00000202 chantelise_exe_unpacked+0x985af1c: 09c5af1c cc int 3 And we landed into out int 3 instruction at the start of the buffer. So now we can do anything we want, ret2shellcode or ROP i.e. Since ASLR and DEP are disabled in executable, we can use any technique to exploit this stack buffer overflow.\nProof of Concept So, what’s now? Bad Apple!\nhttps://github.com/user-attachments/assets/2c53e89b-bcb2-44ca-aa57-3c0bd90ccc49\nOther exploit vectors WIP…\n",
+  "wordCount" : "1476",
+  "inLanguage": "en",
+  "datePublished": "2026-08-25T00:00:00Z",
+  "dateModified": "2026-08-25T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/posts/hello-world/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "heapcat",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="header-nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="heapcat (Alt + H)">heapcat</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu" class="menu">
+            <li>
+                <a href="http://localhost:1313/posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="Tags">
+                    <span>Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about/" title="About">
+                    <span>About</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <nav class="breadcrumbs" role="navigation" aria-label="Breadcrumb">
+            <a href="/">Home</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/posts/">Posts</a>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+        <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+</nav>
+    <h1 class="post-title entry-hint-parent">
+      Load Save? Yes. Execute? Also Yes.
+      <span class="entry-hint" title="Draft">
+        <svg xmlns="http://www.w3.org/2000/svg" height="35" viewBox="0 -960 960 960" fill="currentColor">
+          <path
+            d="M160-410v-60h300v60H160Zm0-165v-60h470v60H160Zm0-165v-60h470v60H160Zm360 580v-123l221-220q9-9 20-13t22-4q12 0 23 4.5t20 13.5l37 37q9 9 13 20t4 22q0 11-4.5 22.5T862.09-380L643-160H520Zm300-263-37-37 37 37ZM580-220h38l121-122-18-19-19-18-122 121v38Zm141-141-19-18 37 37-18-19Z" />
+        </svg>
+      </span>
+    </h1>
+    <div class="post-description">
+      Chaining Buffer Overflows to Achieve ACE in a Forgotten Two-Decade-Old Game
+    </div>
+    <div class="post-meta">
+
+<span title='2026-08-25 00:00:00 +0000 UTC'>August 25, 2026</span>&nbsp;·&nbsp;<span>7 min</span>
+
+</div>
+  </header> <details class="toc" >
+    <summary accesskey="c" title="(Alt + C)">
+        <span class="title">Table of Contents</span>
+    </summary>
+
+    <div class="inner"><ul>
+            <li>
+                <a href="#tlrd" aria-label="TL;RD">TL;RD</a></li>
+            <li>
+                <a href="#discovery" aria-label="Discovery">Discovery</a></li>
+            <li>
+                <a href="#exploiting-global-buffer-overflow" aria-label="Exploiting Global Buffer Overflow">Exploiting Global Buffer Overflow</a><ul>
+                    <ul>
+                    
+            <li>
+                <a href="#what-we-can-do-with-it" aria-label="What we can do with it?">What we can do with it?</a></li></ul>
+                </ul>
+            </li>
+            <li>
+                <a href="#exploiting-stack-buffer-overflow" aria-label="Exploiting Stack Buffer Overflow">Exploiting Stack Buffer Overflow</a></li>
+            <li>
+                <a href="#proof-of-concept" aria-label="Proof of Concept">Proof of Concept</a></li>
+            <li>
+                <a href="#other-exploit-vectors" aria-label="Other exploit vectors">Other exploit vectors</a>
+            </li>
+        </ul>
+    </div>
+</details>
+
+  <div class="post-content md-content"><h1 id="tlrd">TL;RD<a hidden class="anchor" aria-hidden="true" href="#tlrd">#</a></h1>
+<p>The save file parser passes an attacker-controlled file size directly to qmemcpy, overflowing a global buffer in .data and corrupting adjacent resource file path strings. When the game fails to open the corrupted path, the error handler copies it into a fixed-size stack buffer via wsprintfA with no length check. That allows us to overwrite ret address and achive ACE due to the lack of ASLR and DEP.</p>
+<h1 id="discovery">Discovery<a hidden class="anchor" aria-hidden="true" href="#discovery">#</a></h1>
+<p>When I first started this project, I wasn&rsquo;t paying much attention to the save file parsing function. I just mapped out the algorithm, how it loads data into a buffer, and moved on. However, under closer inspection i realized, that there is vulnerability, that allows us to copy any amount of data from file to .data buffers.</p>
+<h1 id="exploiting-global-buffer-overflow">Exploiting Global Buffer Overflow<a hidden class="anchor" aria-hidden="true" href="#exploiting-global-buffer-overflow">#</a></h1>
+<p>While analyzing the function and examining the original save file, it became clear that the legitimate save file size is <code>0xC820</code> bytes. However, during loading, the game blindly trusts the attacker-controlled file size, passing it directly to <code>qmemcpy</code> without any validation. This allows an attacker to craft a save file of arbitrary size (larger than <code>0xC820</code>) and overwrite an arbitrary amount of data in the .data segment.</p>
+<p>Below is a decompiled view of the save file parser function, with comments explaining where and why the vulnerability exists:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">load_savefile</span><span class="p">()</span> <span class="c1">// .text:004648B0
+</span></span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">FILE</span> <span class="o">*</span><span class="n">v0</span><span class="p">;</span> <span class="c1">// eax
+</span></span></span><span class="line"><span class="cl">  <span class="n">FILE</span> <span class="o">*</span><span class="n">v1</span><span class="p">;</span> <span class="c1">// edi
+</span></span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">result</span><span class="p">;</span> <span class="c1">// eax
+</span></span></span><span class="line"><span class="cl">  <span class="kt">size_t</span> <span class="n">filesize</span><span class="p">;</span> <span class="c1">// ebx
+</span></span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="o">*</span><span class="n">v4</span><span class="p">;</span> <span class="c1">// esi
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">v0</span> <span class="o">=</span> <span class="nf">fopen</span><span class="p">(</span><span class="n">aSaveDat</span><span class="p">,</span> <span class="n">Mode</span><span class="p">);</span> <span class="c1">// Open save.dat with rb mode
+</span></span></span><span class="line"><span class="cl">  <span class="n">v1</span> <span class="o">=</span> <span class="n">v0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span> <span class="n">v0</span> <span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// File size is calculated using fseek/ftell.
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// This value is attacker-controlled, since we can craft a file
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// of any size we want.
+</span></span></span><span class="line"><span class="cl">    <span class="n">filesize</span> <span class="o">=</span> <span class="nf">get_filesize_fseek</span><span class="p">(</span><span class="n">v0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">v4</span> <span class="o">=</span> <span class="nf">malloc</span><span class="p">(</span><span class="n">filesize</span><span class="p">);</span>            <span class="c1">// Allocate a heap chunk of filesize bytes
+</span></span></span><span class="line"><span class="cl">    <span class="nf">fread</span><span class="p">(</span><span class="n">v4</span><span class="p">,</span> <span class="mi">1u</span><span class="p">,</span> <span class="n">filesize</span><span class="p">,</span> <span class="n">v1</span><span class="p">);</span>      <span class="c1">// Read filesize bytes from fd into the heap chunk
+</span></span></span><span class="line"><span class="cl">    <span class="nf">fclose</span><span class="p">(</span><span class="n">v1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// First global buffer overflow.
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// The attacker-controlled filesize is passed to qmemcpy without any bounds check,
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// copying all data from the heap chunk into the global buffer at &amp;playersaves (.data:09C4E140).
+</span></span></span><span class="line"><span class="cl">    <span class="nf">qmemcpy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">playersaves</span><span class="p">,</span> <span class="n">v4</span><span class="p">,</span> <span class="n">filesize</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nf">sub_47B720</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="n">result</span> <span class="o">=</span> <span class="nf">init_saveslots_if_null</span><span class="p">();</span> <span class="c1">// Initialize save slots if null.
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Second global buffer overflow.
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// filesize is passed to qmemcpy again without any bounds check,
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// copying from &amp;playersaves (.data:09C4E140) into &amp;live_saveslots (.data:09C3C368),
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// which sits at a higher address in the .data segment.
+</span></span></span><span class="line"><span class="cl">    <span class="nf">qmemcpy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">live_saveslots</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">playersaves</span><span class="p">,</span> <span class="n">filesize</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">else</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">result</span> <span class="o">=</span> <span class="nf">init_saveslots_if_null</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// THIS IS HOW IT SHOULD BE DONE
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// A hardcoded size of 0xC820 prevents the overflow entirely.
+</span></span></span><span class="line"><span class="cl">    <span class="nf">qmemcpy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">live_saveslots</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">playersaves</span><span class="p">,</span> <span class="mh">0xC820u</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span></code></pre></div><p>So i started debugging it. When loading a normal save file, the memory region immediately following the save data looks like this:</p>
+<p><img alt="clean_memory" loading="lazy" src="/posts/hello-world/clean_memory.png"></p>
+<p>The last 4 bytes of the save data are located at <code>0x09C5A95C</code>. However, when we add additional data to the save file and load it, the same memory region looks like this:</p>
+<p><img alt="overwriten_memory" loading="lazy" src="/posts/hello-world/overwriten_memory.png"></p>
+<p>As you can see, the game continues copying the save file data into higher memory addresses beyond the end of the global buffer at <code>0x09C5A95C</code>.</p>
+<h3 id="what-we-can-do-with-it">What we can do with it?<a hidden class="anchor" aria-hidden="true" href="#what-we-can-do-with-it">#</a></h3>
+<p>At first, I thought this vulnerability was unexploitable due to the lack of any pointers or other immediately useful data in the <code>.data</code> segment.
+However, after taking a closer look, I discovered that the .data segment also stores .x file paths at higher addresses, located after our vulnerable buffer.</p>
+<img width="602" height="187" alt="image" src="https://github.com/user-attachments/assets/68eb516f-367f-456e-9a74-3acb0a614894" />
+<p>Then I tried to overwrite the file path. To make things easier, I calculated the offset between the end of the global buffer and the beginning of the first .x file path (all memory after global buffer contains a bunch of .x, .bmp and other file paths). I also copied the already-initialized memory from Cheat Engine&rsquo;s memory view, just in case the game relied on some of the variables stored in this region.</p>
+<p>Alright, time to overwrite the file path and see what happens. Well&hellip; nothing particularly exciting. The game simply displays a warning box saying it couldn&rsquo;t open the file <code>AAAAAAAAAAAAAA...</code> and then freezes on the loading screen.</p>
+<img width="671" height="267" alt="image" src="https://github.com/user-attachments/assets/b883fb19-f665-4a6f-b76c-aec4091a63c1" />
+<p>But wait, that&rsquo;s actually a useful clue. We can search for the &ldquo;File Opne Error&rdquo; string in the binary to find the function responsible for displaying this warning and, more importantly, attempting to load the .x file. And that&rsquo;s where the second chapter of this story begins.</p>
+<h1 id="exploiting-stack-buffer-overflow">Exploiting Stack Buffer Overflow<a hidden class="anchor" aria-hidden="true" href="#exploiting-stack-buffer-overflow">#</a></h1>
+<p>After locating the function responsible for loading the .x file, I traced the filename backwards from the MessageBoxA call to its source and found something much more interesting: a stack-based buffer overflow.
+This function is located at <code>.text:0045E4B0</code> and takes two arguments, one of which is <code>LPCSTR lpCaption</code>, the path of the .x file the game is trying to open:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">void</span> <span class="kr">__cdecl</span> <span class="nf">load_xfile02</span><span class="p">(</span><span class="kt">int</span> <span class="n">a1</span><span class="p">,</span> <span class="n">LPCSTR</span> <span class="n">lpCaption</span><span class="p">)</span> <span class="c1">// Filename passed as argument to function
+</span></span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">unsigned</span> <span class="kr">__int16</span> <span class="o">*</span><span class="n">v2</span><span class="p">;</span> <span class="c1">// esi
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// ... SNIPPET ...
+</span></span></span><span class="line"><span class="cl">  <span class="n">CHAR</span> <span class="n">Text</span><span class="p">[</span><span class="mi">256</span><span class="p">];</span> <span class="c1">// This is the stack buffer, where function loads file path 
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">v2</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kr">__int16</span> <span class="o">*</span><span class="p">)</span><span class="nf">malloc</span><span class="p">((</span><span class="kt">size_t</span><span class="p">)</span><span class="o">&amp;</span><span class="n">unk_800000</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span> <span class="n">v2</span> <span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">v3</span> <span class="o">=</span> <span class="nf">fopen</span><span class="p">(</span><span class="n">lpCaption</span><span class="p">,</span> <span class="n">Mode</span><span class="p">);</span> <span class="c1">// Function tries to open file
+</span></span></span><span class="line"><span class="cl">    <span class="n">v4</span> <span class="o">=</span> <span class="n">v3</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span> <span class="n">v3</span> <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ... SNIPPET ... we don&#39;t need all that logic, trust me
+</span></span></span><span class="line"><span class="cl">      <span class="k">else</span>
+</span></span><span class="line"><span class="cl">      <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">wsprintfA</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="s">&#34;Not File Found %s&#34;</span><span class="p">,</span> <span class="n">lpCaption</span><span class="p">);</span> <span class="c1">// &lt;-- This is the text we get in MessageBox when game can&#39;t load file
+</span></span></span><span class="line"><span class="cl">        <span class="nf">MessageBoxA</span><span class="p">(</span><span class="n">hWndParent</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">aError_0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span> <span class="c1">// This displays error MessageBox
+</span></span></span><span class="line"><span class="cl">        <span class="nf">free</span><span class="p">(</span><span class="n">v2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">else</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">sprintf</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">byte_50FD38</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">MessageBoxA</span><span class="p">(</span><span class="n">hWndParent</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">lpCaption</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>The interesting part is the error-handling path. If fopen(lpCaption, &ldquo;rb&rdquo;) fails, the game constructs an error message using:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="nf">wsprintfA</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="s">&#34;Not File Found %s&#34;</span><span class="p">,</span> <span class="n">lpCaption</span><span class="p">);</span>
+</span></span></code></pre></div><p>The resulting string is stored in Text, which is a fixed-size 256-byte stack buffer.</p>
+<p>Normally, this wouldn&rsquo;t be particularly interesting. But remember that we already control <code>lpCaption</code> through the first vulnerability. We can therefore replace the .x file path in the .data segment with an arbitrarily long string. When that string is passed to <code>wsprintfA</code>, there is no bounds check on Text. Once the resulting message exceeds 256 bytes, wsprintfA continues writing past the end of the stack buffer and starts corrupting adjacent stack data.</p>
+<p>So we&rsquo;ve effectively turned the first vulnerability into a primitive for triggering a second one:</p>
+<pre tabindex="0"><code>Save file
+⌄
+Global .data buffer overflow
+⌄
+Overwrite .x file path
+⌄
+Controlled lpCaption
+⌄
+wsprintfA(..., lpCaption)
+⌄
+256-byte stack buffer overflow
+⌄
+Corrupted stack / return address
+</code></pre><p>After that, I generated a very long cyclic pattern (we dont need to be percise, because we dont know which file will be loaded by the game first, so let&rsquo;s just try to overwrite as much file paths as we can) and saved it to the file. When launching the game, nothing unusual happened: the crash only occurred after loading the modified save file. The game displayed the expected error about being unable to open the file and then crashed.</p>
+<img width="467" height="470" alt="image" src="https://github.com/user-attachments/assets/33173ae2-b554-460f-96d5-e49fc3e58448" />
+<p>Well, if it crashes, there&rsquo;s only one thing left to do: fire up the debugger and see what we managed to overwrite.</p>
+<pre tabindex="0"><code>(3204.42e0): Access violation - code c0000005 (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+eax=00000001 ebx=00000001 ecx=0dd60000 edx=0dd60000 esi=09c5af18 edi=00458880
+eip=34664933 esp=19e7fc38 ebp=09c3c368 iopl=0         nv up ei pl nz na po nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010202
+34664933 ??              ???
+</code></pre><p>That&rsquo;s a hit! <code>EIP = 0x34664933 = 4fI3</code> and it&rsquo;s part of out cyclic pattern, we control <code>eip</code> register (<code>ret</code> address on stack).</p>
+<p>Lets confirm it by overwriting eip to <code>\x42\x42\x42\x42</code></p>
+<pre tabindex="0"><code>0:017&gt; g
+(40ec.4b3c): Access violation - code c0000005 (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+eax=00000001 ebx=00000000 ecx=0de50000 edx=0de50000 esi=09c5af18 edi=00458880
+eip=42424242 esp=1a92fc38 ebp=09c3c368 iopl=0         nv up ei pl nz na po nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010202
+42424242 ??              ???
+</code></pre><p>Alright, now our dummy payload looks like this:</p>
+<pre tabindex="0"><code>[] Original Save Data  
+[] Padding to First xpath string
+[] 6401 bytes of &#39;\x41&#39; padding
+[] \x41\x42\x42\x42 (ret)
+</code></pre><p>Now we need to find where out buffer is stored in memory? <code>ESI</code> register stores address of <code>buffer-0x4</code>.</p>
+<img width="639" height="241" alt="image" src="https://github.com/user-attachments/assets/01bd24eb-1288-4a76-9c03-19e335adda25" />
+<p>So we need to overwrite ret address with <code>esi + 0x4</code> and try to hit CC opcode at the beginning of the buffer to check if we land there.</p>
+<pre tabindex="0"><code>0:017&gt; g
+(3630.938): Break instruction exception - code 80000003 (first chance)
+*** WARNING: Unable to verify checksum for C:\Program Files (x86)\Steam\steamapps\common\Chantelise\chantelise.exe.unpacked.exe
+eax=00000001 ebx=00000000 ecx=0de00000 edx=0de00000 esi=09c5af18 edi=00458880
+eip=09c5af1c esp=1ab0fc38 ebp=09c3c368 iopl=0         nv up ei pl nz na po nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000202
+chantelise_exe_unpacked+0x985af1c:
+09c5af1c cc              int     3
+</code></pre><p>And we landed into out int 3 instruction at the start of the buffer. So now we can do anything we want, ret2shellcode or ROP i.e. Since ASLR and DEP are disabled in executable, we can use any technique to exploit this stack buffer overflow.</p>
+<h1 id="proof-of-concept">Proof of Concept<a hidden class="anchor" aria-hidden="true" href="#proof-of-concept">#</a></h1>
+<p>So, what&rsquo;s now? Bad Apple!</p>
+<p><a href="https://github.com/user-attachments/assets/2c53e89b-bcb2-44ca-aa57-3c0bd90ccc49">https://github.com/user-attachments/assets/2c53e89b-bcb2-44ca-aa57-3c0bd90ccc49</a></p>
+<h1 id="other-exploit-vectors">Other exploit vectors<a hidden class="anchor" aria-hidden="true" href="#other-exploit-vectors">#</a></h1>
+<p>WIP&hellip;</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">heapcat</a></span> · 
+
+    
+    
+    <span>
+        Powered by
+        <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" id="top-link" class="top-link hidden" aria-label="go to top" title="Go to Top (Alt + G)" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-up">
+        <polyline points="17 11 12 6 7 11"></polyline>
+        <polyline points="17 18 12 13 7 18"></polyline>
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var toplink = document.getElementById("top-link");
+    window.onscroll = function () {
+        const scrollThreshold = window.innerHeight;
+        if (document.body.scrollTop > scrollThreshold || document.documentElement.scrollTop > scrollThreshold) {
+            toplink.classList.remove("hidden");
+        } else {
+            toplink.classList.add("hidden");
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

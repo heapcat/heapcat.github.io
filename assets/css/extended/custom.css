@@ -1,0 +1,13 @@
+/* Make the main content wider */
+.main {
+    max-width: 1000px;
+}
+
+/* Keep images proportional */
+.post-content img {
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    display: block;
+    margin: 1rem auto;
+}

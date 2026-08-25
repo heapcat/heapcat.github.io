@@ -1,0 +1,53 @@
+baseURL: "http://localhost:1313/"
+languageCode: "en-us"
+title: "heapcat"
+
+theme: "PaperMod"
+
+params:
+  env: production
+
+  defaultTheme: dark
+  disableThemeToggle: false
+
+  ShowReadingTime: true
+  ShowCodeCopyButtons: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowToc: true
+  TocOpen: false
+
+  homeInfoParams:
+    Title: "heapcat"
+    Content: "i love Hardware/Embedded systems, VR/XD and other stuff."
+
+  socialIcons:
+    - name: github
+      url: "https://github.com/heapcat"
+    - name: email
+      url: "mailto:heapcat@riseup.net"
+
+menu:
+  main:
+    - identifier: posts
+      name: Posts
+      url: /posts/
+      weight: 10
+
+    - identifier: tags
+      name: Tags
+      url: /tags/
+      weight: 20
+
+    - identifier: about
+      name: About
+      url: /about/
+      weight: 30
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+
+  highlight:
+    noClasses: false
