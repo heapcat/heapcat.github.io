@@ -6,7 +6,7 @@ draft: false
 ---
 
 # TL;RD
-The save file parser passes an attacker-controlled file size directly to qmemcpy, overflowing a global buffer in .data and corrupting adjacent resource file path strings. When the game fails to open the corrupted path, the error handler copies it into a fixed-size stack buffer via wsprintfA with no length check. That allows us to overwrite ret address and achive ACE due to the lack of ASLR and DEP.
+The save file parser passes an attacker-controlled file size directly to qmemcpy, overflowing a global buffer in .data and corrupting adjacent resource file path strings. When the game fails to open the corrupted path, the error handler copies it into a fixed-size stack buffer via wsprintfA with no length check. That allows us to overwrite ret address and achive ACE due to the lack of Stack Canary, ASLR and DEP.
 
 # Discovery
 
@@ -206,7 +206,7 @@ chantelise_exe_unpacked+0x985af1c:
 09c5af1c cc              int     3
 ```
 
-And we landed into out `int 3` instruction at the start of the buffer. So now we can do anything we want, ret2shellcode or ROP i.e. Since ASLR and DEP are disabled in executable, we can use any technique to exploit this stack buffer overflow.
+And we landed into out `int 3` instruction at the start of the buffer. So now we can do anything we want, ret2shellcode or ROP i.e. Since Stack Canary, ASLR and DEP are disabled in executable, we can use any technique to exploit this stack buffer overflow.
 
 # Proof of Concept
 
