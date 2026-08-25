@@ -6,6 +6,10 @@ theme: "PaperMod"
 
 params:
   env: production
+  assets:
+    favicon: "/favicon.ico"
+    favicon16x16: "/favicon-96x96.png" # Works cleanly for smaller sizes
+    favicon32x32: "/favicon-96x96.png"
 
   defaultTheme: dark
   disableThemeToggle: false
