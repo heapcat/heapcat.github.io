@@ -11,3 +11,137 @@
     display: block;
     margin: 1rem auto;
 }
+
+/* ==========================================
+   About Me Page — Banner & Profile Header
+   ========================================== */
+.about-hero {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--entry);
+    border: 1px solid var(--border);
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.about-banner-wrap {
+    width: 100%;
+    height: 210px;
+    overflow: hidden;
+    background: #12131a;
+    position: relative;
+}
+
+.post-content .about-banner-wrap img.about-banner,
+.post-content .about-banner-wrap video.about-banner {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    margin: 0;
+    display: block;
+    border-radius: 0;
+}
+
+.about-profile-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    padding: 0 1.75rem 1.5rem 1.75rem;
+    margin-top: -58px;
+    position: relative;
+    z-index: 2;
+    flex-wrap: wrap;
+}
+
+.about-pfp-wrap {
+    width: 116px;
+    height: 116px;
+    flex-shrink: 0;
+}
+
+.post-content .about-pfp-wrap img.about-pfp {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    margin: 0;
+    display: block;
+    background: transparent;
+}
+
+.about-identity {
+    padding-top: 62px;
+    flex: 1;
+    min-width: 220px;
+}
+
+.about-identity h1 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.75rem;
+    line-height: 1.2;
+}
+
+.about-handle {
+    color: var(--secondary);
+    font-family: monospace;
+    font-size: 0.95rem;
+    margin-bottom: 0.65rem;
+}
+
+.about-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.5rem;
+}
+
+.about-tag {
+    font-size: 0.78rem;
+    font-family: monospace;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    color: var(--primary);
+}
+
+.about-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin: 1.5rem 0;
+}
+
+.about-card {
+    background: var(--entry);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.4rem;
+    width: 100%;
+}
+
+.about-card h3 {
+    margin-top: 0;
+    margin-bottom: 0.65rem;
+    font-size: 1.1rem;
+}
+
+.about-card ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+@media (max-width: 600px) {
+    .about-banner-wrap {
+        height: 150px;
+    }
+    .about-profile-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    .about-identity {
+        padding-top: 0.25rem;
+    }
+}
