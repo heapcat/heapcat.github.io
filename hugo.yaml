@@ -1,11 +1,13 @@
 baseURL: "http://localhost:1313/"
-languageCode: "en-us"
+locale: "en-us"
 title: "heapcat"
 
 theme: "PaperMod"
 
 params:
   env: production
+  mainSections:
+    - posts
   assets:
     favicon: "/favicon.ico"
     favicon16x16: "/favicon-96x96.png" # Works cleanly for smaller sizes
@@ -38,10 +40,15 @@ menu:
       url: /posts/
       weight: 10
 
-    - identifier: tags
-      name: Tags
-      url: /tags/
-      weight: 20
+    - identifier: wiki
+      name: Wiki
+      url: /wiki/
+      weight: 15
+
+    # - identifier: tags
+    #   name: Tags
+    #   url: /tags/
+    #   weight: 20
 
     - identifier: about
       name: About

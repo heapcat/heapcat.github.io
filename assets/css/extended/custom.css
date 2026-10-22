@@ -89,23 +89,6 @@
     margin-bottom: 0.65rem;
 }
 
-.about-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    margin-top: 0.5rem;
-}
-
-.about-tag {
-    font-size: 0.78rem;
-    font-family: monospace;
-    padding: 0.2rem 0.65rem;
-    border-radius: 999px;
-    background: var(--code-bg);
-    border: 1px solid var(--border);
-    color: var(--primary);
-}
-
 .about-grid {
     display: flex;
     flex-direction: column;
@@ -145,3 +128,42 @@
         padding-top: 0.25rem;
     }
 }
+
+/* Wiki Tables: Full width, big image column, compact notes column */
+.post-content table:not(.highlighttable) {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.post-content table:not(.highlighttable) th:nth-child(1),
+.post-content table:not(.highlighttable) td:nth-child(1) {
+    width: 18%;
+}
+
+.post-content table:not(.highlighttable) th:nth-child(2),
+.post-content table:not(.highlighttable) td:nth-child(2) {
+    width: 58%;
+}
+
+.post-content table:not(.highlighttable) th:nth-child(3),
+.post-content table:not(.highlighttable) td:nth-child(3) {
+    width: 24%;
+    font-size: 0.9rem;
+}
+
+.post-content table img {
+    max-width: 100%;
+    width: 520px;
+    margin: 0.4rem auto;
+}
+
+/* Disable PaperMod hover animation on post cards */
+.post-entry,
+.post-entry:hover,
+.post-entry:focus-within,
+.post-entry:active {
+    transition: none !important;
+    transform: none !important;
+}
+

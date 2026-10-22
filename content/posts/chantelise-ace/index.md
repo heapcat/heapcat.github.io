@@ -5,12 +5,12 @@ date: 2026-08-25
 draft: false
 ---
 
-# TL;RD
-The save file parser passes an attacker-controlled file size directly to qmemcpy, overflowing a global buffer in .data and corrupting adjacent resource file path strings. When the game fails to open the corrupted path, the error handler copies it into a fixed-size stack buffer via wsprintfA with no length check. That allows us to overwrite ret address and achive ACE due to the lack of Stack Canary, ASLR and DEP.
+# TL;DR
+The save file parser passes an attacker-controlled file size directly to qmemcpy, overflowing a global buffer in .data and corrupting adjacent resource file path strings. When the game fails to open the corrupted path, the error handler copies it into a fixed-size stack buffer via wsprintfA with no length check. That allows us to overwrite ret address and achieve ACE due to the lack of Stack Canary, ASLR and DEP.
 
 # Discovery
 
-When I first started this project, I wasn't paying much attention to the save file parsing function. I just mapped out the algorithm, how it loads data into a buffer, and moved on. However, under closer inspection i realized, that there is vulnerability, that allows us to copy any amount of data from file to .data buffers.
+When I first started this project, I wasn't paying much attention to the save file parsing function. I just mapped out the algorithm, how it loads data into a buffer, and moved on. However, under closer inspection I realized, that there is vulnerability, that allows us to copy any amount of data from file to .data buffers.
 
 # Exploiting Global Buffer Overflow
 
