@@ -16,15 +16,6 @@ The Hextree Faultier is an inexpensive voltage fault-injection tool and the comp
 
 A built-in SWD probe lets you dump glitched chips and check whether a glitch worked after a debug feature is re-enabled, as in the nRF52 APPROTECT bypass or the STM32 RDP2-to-1 downgrade. Faultier can also take basic voltage measurements, for example to time a glitch on an nRF52, and is controlled through the `faultier` Python package.
 
-Features:
-
-- Raspberry Pi Pico / RP2040 based
-- 200 MHz (5 ns) glitch resolution
-- Integrated SWD probe
-- N-channel MOSFET (DMG2302UK)
-- 2-channel analogue switch
-- Python control library
-
 **Source:** [1BitSquared](https://1bitsquared.com/products/faultier)  
 **GitHub:** [github.com/hextreeio/faultier](https://github.com/hextreeio/faultier)
 
@@ -92,7 +83,7 @@ Created by Matthias Kesenheimer. Open-source voltage fault injection hardware bu
 | :--- | :---: | :--- |
 | **Pico Glitcher v1.0** | ![Pico Glitcher v1.0](images/PicoGlitcher/picoglitcher_v1.jpg)<br><small>Source: [Matthias Kesenheimer](https://mkesenheimer.github.io/blog/pico-glitcher-pcb.html)</small> | First prototype: Raspberry Pi Pico, two power MOSFETs, level shifters, switchable power supply. Probably the July 2024 first build with black PCB (Hackaday). |
 | **Pico Glitcher v1.1** | ![Pico Glitcher v1.1](images/PicoGlitcher/picoglitcher_v1.1.jpg)<br><small>Source: [Matthias Kesenheimer](https://x.com/BartimaeusvUruk/status/1844771924229923014)</small> | Public release of v1. MOSFETs: IRLML2502 (low power) and SI4134DY (high power). First batch of v1 sold out Dec 2024 (Hackaday).<br>**Changes from v1.0:** Layout changed, LED issue fixed (a Sept 2024 log also mentions clearer PCB markings, probably this revision) |
-| **Pico Glitcher v2.0 (modified with Pico 2)** | ![Modified Pico Glitcher](images/PicoGlitcher/picoglitcher_pico2_on_old_pcb.jpg)<br><small>Source: [@dr_j.zoidberg](https://discord.com/channels/1338062169433968642/1338064292917809172/1480094923092000869)</small> | **Unconfirmed: believed to be v2.0.**<br>First v2 prototype. First voltage multiplexer (GND, 1.8 V, 3.3 V, arbitrary VIN input), which didn't work properly without extra pull-up resistors. Probably never sold publicly.<br>**Changes from v1.1:** Multiplexer added, GPIO header pin assignment changed, smaller capacitor on VTARGET<br>**Note:** The 16-pin GPIO header fits v2.0 (also true for v1.x). The RESET button is large, as on v1.1 and v2.1 (v2.2 and later use a small one), but it sits in a different position, at the lower-left edge. The via layout is unlike any other documented revision. The marking appears to read "PicoGlitcher v2" and "(c) 2024". |
+| **Pico Glitcher v2.0 (modified with Pico 2)** | ![Modified Pico Glitcher](images/PicoGlitcher/picoglitcher_pico2_on_old_pcb.jpg)<br><small>Source: [@dr_j.zoidberg](https://discord.com/channels/1338062169433968642/1338064292917809172/1480094923092000869)</small> | **Unconfirmed: believed to be v2.0.**<br>First v2 prototype. First voltage multiplexer (GND, 1.8 V, 3.3 V, arbitrary VIN input), which didn't work properly without extra pull-up resistors. Probably never sold publicly.<br>**Changes from v1.1:** Multiplexer added, GPIO header pin assignment changed, smaller capacitor on VTARGET<br>**Note:** The 16-pin GPIO header fits v2.0 (also true for v1.x). The RESET button is large, as on v1.1 and v2.1 (v2.2 and later use a small one), but it sits in a different position, at the lower-left edge. The vias layout is unlike any other documented revision. The marking appears to read "PicoGlitcher v2" and "(c) 2024". |
 | **Pico Glitcher v2.1** | ![Pico Glitcher v2.1](images/PicoGlitcher/picoglitcher_v2.1.jpg)<br><small>Source: [Matthias Kesenheimer](https://x.com/BartimaeusvUruk/status/1887242573682487795/)</small> | Public release of v2. Schmitt trigger inputs EXT1/EXT2 (a v2 feature). VTARGET power switch (TPS2041) only switches voltages above 2.2 V.<br>**Changes from v2.0:** Multiplexer fixed, GPIO header 16 to 20 pins, level shifters removed on GPIO16-19 (for the pulse shaping board) |
 | **Pico Glitcher v2.2** | ![Pico Glitcher v2.2](images/PicoGlitcher/picoglitcher_v2.2.jpg)<br><small>Source: [Matthias Kesenheimer](https://x.com/BartimaeusvUruk/status/1903473838467244138)</small> | **Changes from v2.1:** Better layout (thicker power tracks), multiplexer now has two arbitrary voltage inputs (VIN1, VIN2) with a jumper to fix VIN2 at 3.3 V |
 | **Pico Glitcher v2.3** | *No photo yet* | Problem version: red power LED didn't light properly, and the level shifters only worked with 3.3 V logic.<br>**Changes from v2.2:** Power switch TPS2041 to TPS22860 (faster, switches lower voltages), level shifters NH245 to TXB0108, VTARGET capacitors removed |
@@ -112,8 +103,8 @@ Created by Colin O'Flynn / [NewAE Technology](https://www.newae.com/chipwhispere
 | **ChipWhisperer®-Lite (CW1173)** | ![CW-Lite](images/NewAE/NewAE_CW_Lite.jpg)<br><small>Source: [NewAE](https://chipwhisperer.readthedocs.io/en/latest/Starter%20Kits/ChipWhisperer-Lite.html)</small> | |
 | **ChipWhisperer®-Pro (CW1200)** | ![CW-Pro](images/NewAE/NewAE_CW_Pro.png)<br><small>Source: [NewAE](https://chipwhisperer.readthedocs.io/en/latest/Starter%20Kits/ChipWhisperer-Pro.html)</small> | |
 | **ChipWhisperer®-Husky** | ![CW-Husky](images/NewAE/NewAE_CW_Husky.jpg)<br><small>Source: [NewAE](https://chipwhisperer.readthedocs.io/en/latest/Capture/ChipWhisperer-Husky.html)</small> | |
-| **ChipWhisperer®-Husky-Plus** | ![CW-Husky-Plus](images/NewAE/NewAE_CW_Husky_Plus.png)<br><small>Source: [NewAE](https://www.newae.com/chipwhisperer)</small> | Husky with larger buffers, a faster ADC and longer trigger sequences. |
-| **ChipWhisperer®-Husky Pro Joe Grand Edition** | ![ChipWhisperer Husky Pro Joe Grand Edition](images/NewAE/NewAE_CW_HPJGE.jpg)<br><small>Source: [@joegrandofficial](https://www.instagram.com/p/DaGFm2-m8DQ/)</small> | |
+| **ChipWhisperer®-Husky Plus** | ![CW-Husky-Plus](images/NewAE/NewAE_CW_Husky_Plus.png)<br><small>Source: [NewAE](https://www.newae.com/chipwhisperer)</small> | Husky with larger buffers, a faster ADC and longer trigger sequences. |
+| **ChipWhisperer®-Husky Plus Joe Grand Edition** | ![ChipWhisperer Husky Pro Joe Grand Edition](images/NewAE/NewAE_CW_HPJGE.jpg)<br><small>Source: [@joegrandofficial](https://www.instagram.com/p/DaGFm2-m8DQ/)</small> | |
 | **ChipSHOUTER® (CW520)** | ![ChipShouter](images/NewAE/NewAE_ChipShouter.png)<br><small>Source: [NewAE](https://chipwhisperer.readthedocs.io/en/latest/ChipSHOUTER/ChipSHOUTER.html)</small> | |
 | **ChipSHOUTER®-PicoEMP** | ![ChipShouter®-PicoEMP](images/NewAE/NewAE_PicoEMP.jpg)<br><small>Source: [NewAE](https://github.com/newaetech/chipshouter-picoemp)</small> | |
 | **ChipJabber®-Unplugged** | ![ChipJabber®](images/NewAE/NewAE_CJ.jpg)<br><small>Source: [NewAE](https://chipjabber-unplugged.com/)</small> | DIY voltage fault-injection tool using predominantly through-hole components. Can be assembled on a breadboard or perfboard using the provided schematic. Designed for learning and experimenting with voltage glitching without programmable logic. |
@@ -150,7 +141,7 @@ SimpleGlitcher is a small RP2350 / Raspberry Pi Pico 2 based board for simple 3.
 
 | Revision / Model | Image & Photo Credit | Notes & Identification |
 | :--- | :---: | :--- |
-| **SimpleGlitcher (Aug. 2026)** | ![SimpleGlitcher (Aug. 2026)](images/Kholia/Kholia_SimpleGlitcher.jpg)<br><small>Source: [@dhiru.kholia](https://discord.com/channels/1338062169433968642/1338062170419757120/1532611891745001482)</small> | SimpleGlitcher with "August 2026" tag, first publicly seen on the "Faulty Hardware" Discord server on July 31st 2026. |
+| **SimpleGlitcher (Aug. 2026)** | ![SimpleGlitcher (Aug. 2026)](images/Kholia/Kholia_SimpleGlitcher.jpg)<br><small>Photo kindly provided by [Dhiru Kholia](https://github.com/kholia). Thank you for sharing a high-quality photo of the board!</small> | SimpleGlitcher with an "August 2026" tag, first publicly seen on the Faulty Hardware Discord server on July 31, 2026. |
 | **SimpleGlitcher (Nov. 2026, render)** | ![SimpleGlitcher (Nov. 2026, render)](images/Kholia/Kholia_SimpleGlitcher_render.png)<br><small>Source: [@dhiru.kholia](https://github.com/kholia/SimpleGlitcher)</small> | SimpleGlitcher 3D render with "November 2026" tag, from Dhiru's GitHub repo, dated August 5th 2026. |
 
 ## Curious Supplies - Curious Bolt
