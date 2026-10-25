@@ -88,6 +88,7 @@ Created by Matthias Kesenheimer. Open-source voltage fault injection hardware bu
 | **Pico Glitcher v2.2** | ![Pico Glitcher v2.2](images/PicoGlitcher/picoglitcher_v2.2.jpg)<br><small>Source: [Matthias Kesenheimer](https://x.com/BartimaeusvUruk/status/1903473838467244138)</small> | **Changes from v2.1:** Better layout (thicker power tracks), multiplexer now has two arbitrary voltage inputs (VIN1, VIN2) with a jumper to fix VIN2 at 3.3 V |
 | **Pico Glitcher v2.3** | *No photo yet* | Problem version: red power LED didn't light properly, and the level shifters only worked with 3.3 V logic.<br>**Changes from v2.2:** Power switch TPS2041 to TPS22860 (faster, switches lower voltages), level shifters NH245 to TXB0108, VTARGET capacitors removed |
 | **Pico Glitcher v2.4** | ![Pico Glitcher v2.4](images/PicoGlitcher/picoglitcher_v2.4.png)<br><small>Source: [@miketangoromeo](https://discord.com/channels/1338062169433968642/1338062170419757120/1532299107417325568)</small> | **Changes from v2.3:** Better layout, back to NH245 level shifters, 10 Ω resistor on VTARGET to protect the power switch (bypass with a solder bridge) |
+| **Pico Glitcher v2.5** | *No photo yet* | **Hardware details unconfirmed; not in the official changelog.** `update-fw` accepts `v2.5` and flashes it with the v3.0 firmware config (hardware_version 3.0.0, RP2350 ADC registers), so the firmware treats it as a Pico 2-class board. Probably a revision between v2.4 and v3.0 (inference).<br>**Changes from v2.4:** unknown |
 | **Pico Glitcher v3.0** | ![Pico Glitcher v3.0](images/PicoGlitcher/picoglitcher_v3.0.jpg)<br><small>Source: [Matthias Kesenheimer](https://x.com/BartimaeusvUruk/status/2015148753670279659/)</small> | Based on Raspberry Pi Pico 2. Selectable 1.2 V / 1.8 V / 3.3 V / 5 V supply.<br>**Changes from v2.4:** Pico 2, new voltage options, improved Schmitt triggers, tented vias and more vias in critical regions |
 
 ## NewAE
@@ -104,7 +105,7 @@ Created by Colin O'Flynn / [NewAE Technology](https://www.newae.com/chipwhispere
 | **ChipWhisperer®-Pro (CW1200)** | ![CW-Pro](images/NewAE/NewAE_CW_Pro.png)<br><small>Source: [NewAE](https://chipwhisperer.readthedocs.io/en/latest/Starter%20Kits/ChipWhisperer-Pro.html)</small> | |
 | **ChipWhisperer®-Husky** | ![CW-Husky](images/NewAE/NewAE_CW_Husky.jpg)<br><small>Source: [NewAE](https://chipwhisperer.readthedocs.io/en/latest/Capture/ChipWhisperer-Husky.html)</small> | |
 | **ChipWhisperer®-Husky Plus** | ![CW-Husky-Plus](images/NewAE/NewAE_CW_Husky_Plus.png)<br><small>Source: [NewAE](https://www.newae.com/chipwhisperer)</small> | Husky with larger buffers, a faster ADC and longer trigger sequences. |
-| **ChipWhisperer®-Husky Plus Joe Grand Edition** | ![ChipWhisperer Husky Pro Joe Grand Edition](images/NewAE/NewAE_CW_HPJGE.jpg)<br><small>Source: [@joegrandofficial](https://www.instagram.com/p/DaGFm2-m8DQ/)</small> | |
+| **ChipWhisperer®-Husky Plus Joe Grand Edition** | ![ChipWhisperer Husky Plus Joe Grand Edition](images/NewAE/NewAE_CW_HPJGE.jpg)<br><small>Source: [@joegrandofficial](https://www.instagram.com/p/DaGFm2-m8DQ/)<br>Special thanks to Joe Grand for sharing the story behind this unit!</small> | Not a separate hardware revision: technically identical to a regular Husky Plus. Colin O'Flynn (NewAE) laser-engraved Joe Grand's name onto this unit before sending it to him, after Joe mentioned he didn't have a Husky Plus yet. |
 | **ChipSHOUTER® (CW520)** | ![ChipShouter](images/NewAE/NewAE_ChipShouter.png)<br><small>Source: [NewAE](https://chipwhisperer.readthedocs.io/en/latest/ChipSHOUTER/ChipSHOUTER.html)</small> | |
 | **ChipSHOUTER®-PicoEMP** | ![ChipShouter®-PicoEMP](images/NewAE/NewAE_PicoEMP.jpg)<br><small>Source: [NewAE](https://github.com/newaetech/chipshouter-picoemp)</small> | |
 | **ChipJabber®-Unplugged** | ![ChipJabber®](images/NewAE/NewAE_CJ.jpg)<br><small>Source: [NewAE](https://chipjabber-unplugged.com/)</small> | DIY voltage fault-injection tool using predominantly through-hole components. Can be assembled on a breadboard or perfboard using the provided schematic. Designed for learning and experimenting with voltage glitching without programmable logic. |
@@ -120,6 +121,7 @@ Chip'olino is a hardware-software platform designed for performing glitch attack
 
 | Revision / Model | Image & Photo Credit | Notes & Identification |
 | :--- | :---: | :--- |
+| **Chip'olino (Compact)** | ![Chip'olino Rev. A](images/PT/Chipolino_early.png)<br><small>Source: [@y0v1737](https://github.com/y0v1737/chipolino/blob/main/The_Playbook/pics/pcb_pics/Chip%27olino.png)</small> | **Hardware revision unconfirmed.** Could be early rev. |
 | **Chip'olino Rev. A** | ![Chip'olino Rev. A](images/PT/Chipolino_rev_a.png)<br><small>Source: [@y0v1737](https://github.com/y0v1737/chipolino/blob/main/The_Playbook/pics/pcb_pics/Chip%27olino.png)</small> | |
 
 ## IOActive - Glitch.IO
