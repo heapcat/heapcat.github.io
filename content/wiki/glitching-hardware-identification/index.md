@@ -121,7 +121,7 @@ Chip'olino is a hardware-software platform designed for performing glitch attack
 
 | Revision / Model | Image & Photo Credit | Notes & Identification |
 | :--- | :---: | :--- |
-| **Chip'olino (Compact)** | ![Chip'olino Rev. A](images/PT/Chipolino_early.png)<br><small>Source: [@y0v1737](https://github.com/y0v1737/chipolino/blob/main/The_Playbook/pics/pcb_pics/Chip%27olino.png)</small> | **Hardware revision unconfirmed.** Could be early rev. |
+| **Chip'olino (Compact)** | ![Chip'olino Compact](images/PT/Chipolino_compact.png)<br><small>Source: [@y0v1737](https://github.com/y0v1737/chipolino/blob/main/The_Playbook/pics/pcb_pics/Chip%27olino.png)</small> | **Hardware revision unconfirmed.** Could be early rev. |
 | **Chip'olino Rev. A** | ![Chip'olino Rev. A](images/PT/Chipolino_rev_a.png)<br><small>Source: [@y0v1737](https://github.com/y0v1737/chipolino/blob/main/The_Playbook/pics/pcb_pics/Chip%27olino.png)</small> | |
 
 ## IOActive - Glitch.IO
